@@ -16,12 +16,12 @@
 import {
 	createProvider,
 	envApiKeyAuth,
-	openAICompletionsApi,
 	type Model,
-} from "@earendil-works/pi-ai/compat";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+	openAICompletionsApi,
+} from "@earendil-works/pi-ai/compat"
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 
-const BASE_URL = "https://copilot.tencent.com/v2";
+const BASE_URL = "https://copilot.tencent.com/v2"
 
 // Headers the gateway expects on every request (CodeBuddy CLI identity).
 const GATEWAY_HEADERS = {
@@ -33,7 +33,7 @@ const GATEWAY_HEADERS = {
 	"x-ide-type": "CLI",
 	"x-ide-name": "CLI",
 	"x-ide-version": "2.113.0",
-};
+}
 
 // Gateway quirks vs standard OpenAI Chat Completions.
 const COMPAT = {
@@ -42,7 +42,7 @@ const COMPAT = {
 	supportsReasoningEffort: true, // `reasoning_effort` accepted
 	supportsStrictMode: false, // no `strict` on tools
 	maxTokensField: "max_tokens", // not `max_completion_tokens`
-} as const;
+} as const
 
 const ALL_EFFORTS = {
 	off: null,
@@ -52,9 +52,9 @@ const ALL_EFFORTS = {
 	high: "high",
 	xhigh: "xhigh",
 	max: "max",
-};
+}
 // GPT-5.5 / 5.4 / 5.3-Codex reject "max" (verified 2026-08-18).
-const NO_MAX_EFFORTS = { ...ALL_EFFORTS, max: null };
+const NO_MAX_EFFORTS = { ...ALL_EFFORTS, max: null }
 
 // [id, name, contextWindow, maxTokens, supportsImages, efforts]
 // efforts: "all" | "nomax" | null (null = no effort control, gateway rejects it)
@@ -92,7 +92,7 @@ const SNAPSHOT: Array<[string, string, number, number, boolean, "all" | "nomax" 
 	["hy3-ioa", "Hy3", 192000, 64000, true, "all"],
 	["deepseek-v4-flash-ioa", "DeepSeek V4 Flash", 1000000, 50000, true, "all"],
 	["deepseek-v4-pro-ioa", "DeepSeek V4 Pro", 1000000, 50000, true, "all"],
-];
+]
 
 const models: Model<"openai-completions">[] = SNAPSHOT.map(
 	([id, name, contextWindow, maxTokens, supportsImages, efforts]) => ({
@@ -114,7 +114,7 @@ const models: Model<"openai-completions">[] = SNAPSHOT.map(
 				? { thinkingLevelMap: NO_MAX_EFFORTS }
 				: {}),
 	}),
-);
+)
 
 export default function (pi: ExtensionAPI) {
 	pi.registerProvider(
@@ -127,12 +127,10 @@ export default function (pi: ExtensionAPI) {
 			// TENCENT_INTRANET_API_KEY environment variable is used. The key is
 			// only persisted to ~/.pi/agent/auth.json when /login is used.
 			auth: {
-				apiKey: envApiKeyAuth("Tencent Copilot (CodeBuddy) API key", [
-					"TENCENT_INTRANET_API_KEY",
-				]),
+				apiKey: envApiKeyAuth("Tencent Copilot (CodeBuddy) API key", ["TENCENT_INTRANET_API_KEY"]),
 			},
 			models,
 			api: openAICompletionsApi(),
 		}),
-	);
+	)
 }
