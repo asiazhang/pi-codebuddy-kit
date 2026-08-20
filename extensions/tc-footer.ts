@@ -7,13 +7,15 @@
  *
  * Layout (single line, ANSI-safe truncation on narrow terminals):
  *
- *   ↑in ↓out  42% █████░░░░░        model-id (git-branch)
- *   └─ session token totals ─┘└ context bar ─┘   └─ right-aligned ─┘
+ *   ↑in ↓out  42% █████░░░░░   model-id ⚡high (git-branch)
+ *   └─ session token totals ─┘└ context bar ─┘    └─ right-aligned ─┘
  *
  * - Token totals come from assistant messages on the current session branch.
  * - Context bar uses ctx.getContextUsage() and is color-coded by pressure:
  *   green < 60%, yellow < 85%, red >= 85%.
  * - Git branch re-renders reactively via footerData.onBranchChange().
+ * - Thinking level (⚡high) shown when the model supports reasoning;
+ *   re-renders reactively via the thinking_level_select event.
  * - Re-applied on session_start so the footer closure always captures a
  *   live ctx (session replacement invalidates the old one).
  */
@@ -37,12 +39,20 @@ function contextBar(pct: number, theme: Theme): string {
 
 export default function (pi: ExtensionAPI) {
 	let enabled = false;
+	// Latest render-request callback for the active footer (if any).
+	// pi.on subscriptions cannot be removed, so the handler stays for the
+	// extension lifetime and only forwards to the current footer.
+	let requestFooterRender: (() => void) | null = null;
 
 	const apply = (ctx: ExtensionContext) => {
 		ctx.ui.setFooter((tui, theme, footerData) => {
 			const dispose = footerData.onBranchChange(() => tui.requestRender());
+			requestFooterRender = () => tui.requestRender();
 			return {
-				dispose,
+				dispose() {
+					dispose();
+					requestFooterRender = null;
+				},
 				invalidate() {},
 				render(width: number): string[] {
 					// Session token totals from assistant messages.
@@ -64,10 +74,15 @@ export default function (pi: ExtensionAPI) {
 						context = ` ${theme.fg("dim", `${pct}%`)} ${contextBar(pct, theme)}`;
 					}
 
+					const thinking =
+						ctx.thinkingLevel && ctx.model?.reasoning
+							? ` ${theme.fg("accent", `⚡${ctx.thinkingLevel}`)}`
+							: "";
+
 					const branch = footerData.getGitBranch();
 					const right = theme.fg(
 						"dim",
-						`${ctx.model?.id ?? "no-model"}${branch ? ` (${branch})` : ""}`,
+						`${ctx.model?.id ?? "no-model"}${thinking}${branch ? ` (${branch})` : ""}`,
 					);
 
 					const pad = " ".repeat(
@@ -80,7 +95,7 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	pi.registerCommand("tc-footer", {
-		description: "Toggle the custom status footer (tokens, context bar, branch, model)",
+		description: "Toggle the custom status footer (tokens, context, thinking, branch, model)",
 		handler: async (_args, ctx) => {
 			enabled = !enabled;
 			if (enabled && ctx.hasUI) {
@@ -92,6 +107,11 @@ export default function (pi: ExtensionAPI) {
 				if (ctx.hasUI) ctx.ui.notify("Default footer restored", "info");
 			}
 		},
+	});
+
+	// Re-render the footer when the thinking level changes (Tab, /thinking, model switch).
+	pi.on("thinking_level_select", async () => {
+		requestFooterRender?.();
 	});
 
 	// Re-apply after session switches/reloads with a fresh ctx.
