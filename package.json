@@ -2,16 +2,21 @@
   "name": "pi-tencent-copilot",
   "version": "0.1.0",
   "description": "pi coding agent provider extension for the Tencent CodeBuddy OpenAI-compatible gateway (copilot.tencent.com)",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "0.84.2",
+    "@earendil-works/pi-tui": "^0.84.2",
     "typescript": "^5.7.0"
   },
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": [
+      "./extensions"
+    ]
   }
 }
