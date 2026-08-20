@@ -87,7 +87,7 @@ npm run typecheck
 npm run lint
 ```
 
-预览自定义 footer（`/tc-footer`）的渲染效果：
+预览自定义 footer（默认启用）的渲染效果：
 
 ```sh
 npm run footer-preview

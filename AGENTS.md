@@ -32,7 +32,7 @@ Biome (`biome.json`) owns formatting and linting for `extensions/**` and `script
 ```
 
 - cwd: `~`-relative inside `$HOME`, otherwise the last two path segments (`user/repo`).
-- Context percent: rounded to integer; color matches the bar thresholds — green < 60, yellow ≥ 60, red ≥ 85.
+- Context percent: rounded to integer, computed against the effective window min(contextWindow, 450k); color thresholds are dynamic — small windows go red at pi's auto-compaction trigger, 450k-capped windows at 65%; yellow is half the red line.
 - Model id: default foreground. Branch: dim. Thinking: accent. Cwd: dim.
 - `scripts/footer-preview.mjs` mirrors this logic function-by-function (`formatCwd`, `contextBar`, `renderLine`). When changing render logic in `tc-footer.ts`, update the mirrors in the preview script and re-run it.
 

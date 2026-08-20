@@ -2,8 +2,10 @@
  * Custom status footer for pi (developed alongside the tencent-copilot
  * provider, but provider-agnostic — works with any model).
  *
- * Toggle with /tc-footer. Not enabled by default; the built-in footer
- * stays untouched until you opt in.
+ * Enabled by default; applied on session_start (startup, new, resume,
+ * fork, reload) so the footer closure always captures a live ctx
+ * (session replacement invalidates the old one). The built-in footer
+ * is replaced for the whole session.
  *
  * Layout (single line, ANSI-safe truncation on narrow terminals):
  *
@@ -12,8 +14,14 @@
  *
  * - Working directory: ~-relative inside $HOME, otherwise the last two
  *   path segments; from ctx.sessionManager.getCwd().
- * - Context bar uses ctx.getContextUsage() and is color-coded by pressure:
- *   green < 60%, yellow < 85%, red >= 85%.
+ * - Context bar uses ctx.getContextUsage(). Percent is computed against the
+ *   EFFECTIVE window min(contextWindow, EFFECTIVE_CONTEXT_TOKENS): research
+ *   (Chroma "context rot", LangWatch compaction study) shows quality degrades
+ *   long before large windows fill, so a 1M-token model is treated as 450k.
+ *   Color thresholds track pi's auto-compaction trigger
+ *   (tokens > window - RESERVE_TOKENS): red at the trigger point of the
+ *   effective window, yellow halfway below it. Windows capped by the
+ *   450k ceiling relax red to 65% of the effective window.
  * - Git branch re-renders reactively via footerData.onBranchChange().
  * - Thinking level (⚡high) shown when the model supports reasoning;
  *   re-renders reactively via the thinking_level_select event.
@@ -37,15 +45,47 @@ function formatCwd(cwd: string): string {
 	return segments.slice(-2).join(sep) || sep
 }
 
-/** 10-cell bar, color by context pressure: green < 60%, yellow < 85%, red above. */
-function contextBar(pct: number, theme: Theme): string {
-	const filled = Math.round((pct / 100) * 10)
-	const color = pct >= 85 ? "error" : pct >= 60 ? "warning" : "success"
+/**
+ * Effective-context ceiling (tokens). Research on context rot (Chroma, 18
+ * frontier models) and real-world Claude Code traces (LangWatch) shows model
+ * quality degrades measurably long before large windows fill; recommended
+ * compaction ranges land in 200k–450k. Windows larger than this are capped
+ * so the bar reflects usable context, not the marketing number.
+ */
+const EFFECTIVE_CONTEXT_TOKENS = 450_000
+
+/** pi's default compaction reserve (settings.json: compaction.reserveTokens). */
+const RESERVE_TOKENS = 16_384
+
+/**
+ * Color thresholds relative to the effective window. Small windows track
+ * pi's auto-compaction trigger (tokens > window - RESERVE_TOKENS): red
+ * right at it, yellow halfway below. When the window is capped by
+ * EFFECTIVE_CONTEXT_TOKENS (e.g. a 1M model treated as 450k), the cap is
+ * already conservative, so red relaxes to 65% of the effective window.
+ */
+function thresholds(effectiveWindow: number): { red: number; yellow: number } {
+	const capped = effectiveWindow >= EFFECTIVE_CONTEXT_TOKENS
+	const red = capped ? 65 : ((effectiveWindow - RESERVE_TOKENS) / effectiveWindow) * 100
+	return { red, yellow: red / 2 }
+}
+
+/** Percent of the effective window (0–100), or null when unknown. */
+function effectivePercent(tokens: number, contextWindow: number): number | null {
+	const eff = Math.min(contextWindow, EFFECTIVE_CONTEXT_TOKENS)
+	if (eff <= 0) return null
+	return (tokens / eff) * 100
+}
+
+/** 10-cell bar, color by context pressure against the given thresholds. */
+function contextBar(pct: number, th: { red: number; yellow: number }, theme: Theme): string {
+	const filled = Math.round((Math.min(100, pct) / 100) * 10)
+	const color = pct >= th.red ? "error" : pct >= th.yellow ? "warning" : "success"
 	return theme.fg(color, "█".repeat(filled) + "░".repeat(10 - filled))
 }
 
 export default function (pi: ExtensionAPI) {
-	let enabled = false
+	const enabled = true
 	// Latest render-request callback for the active footer (if any).
 	// pi.on subscriptions cannot be removed, so the handler stays for the
 	// extension lifetime and only forwards to the current footer.
@@ -67,10 +107,15 @@ export default function (pi: ExtensionAPI) {
 
 					let context = ""
 					const usage = ctx.getContextUsage()
-					if (usage && usage.percent !== null) {
-						const pct = Math.min(100, Math.round(usage.percent))
-						const color = pct >= 85 ? "error" : pct >= 60 ? "warning" : "success"
-						context = ` ${theme.fg(color, `${pct}%`)} ${contextBar(pct, theme)}`
+					if (usage && usage.tokens !== null && usage.contextWindow > 0) {
+						const effWindow = Math.min(usage.contextWindow, EFFECTIVE_CONTEXT_TOKENS)
+						const th = thresholds(effWindow)
+						const pct = effectivePercent(usage.tokens, usage.contextWindow)
+						if (pct !== null) {
+							const shown = Math.min(100, Math.round(pct))
+							const color = pct >= th.red ? "error" : pct >= th.yellow ? "warning" : "success"
+							context = ` ${theme.fg(color, `${shown}%`)} ${contextBar(pct, th, theme)}`
+						}
 					}
 
 					const thinking =
@@ -91,27 +136,12 @@ export default function (pi: ExtensionAPI) {
 		})
 	}
 
-	pi.registerCommand("tc-footer", {
-		description: "Toggle the custom status footer (cwd, context, thinking, branch, model)",
-		handler: async (_args, ctx) => {
-			enabled = !enabled
-			if (enabled && ctx.hasUI) {
-				apply(ctx)
-				ctx.ui.notify("Custom footer enabled", "info")
-			} else {
-				enabled = false
-				ctx.ui.setFooter(undefined)
-				if (ctx.hasUI) ctx.ui.notify("Default footer restored", "info")
-			}
-		},
-	})
-
 	// Re-render the footer when the thinking level changes (Tab, /thinking, model switch).
 	pi.on("thinking_level_select", async () => {
 		requestFooterRender?.()
 	})
 
-	// Re-apply after session switches/reloads with a fresh ctx.
+	// Re-apply on startup and after session switches/reloads with a fresh ctx.
 	pi.on("session_start", async (_event, ctx) => {
 		if (enabled && ctx.hasUI) apply(ctx)
 	})
