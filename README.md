@@ -18,23 +18,13 @@ pi -e git:github.com/asiazhang/pi-tencent-copilot
 
 ## 配置 API key
 
-二选一：
-
-方式一（推荐）：在 CodeBuddy 个人密钥页创建 API key，然后在 pi 会话里登录，key 会存入 `~/.pi/agent/auth.json`：
+在 CodeBuddy 个人密钥页创建 API key，然后在 pi 会话里登录，key 会存入 `~/.pi/agent/auth.json`：
 
 ```
 /login
 ```
 
 选择 `tencent-copilot`，粘贴 `ck_...` 开头的 key 即可。`/logout` 可移除存储的 key。
-
-方式二（不推荐）：导出到环境变量：
-
-```sh
-export TENCENT_INTRANET_API_KEY="ck_..."
-```
-
-如需使用，建议写进 `~/.zshrc` 或 `~/.bashrc`。两种方式可以共存：存储的 key 优先于环境变量。
 
 ## 使用
 
