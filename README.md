@@ -26,6 +26,22 @@ pi -e git:github.com/asiazhang/pi-tencent-copilot
 
 选择 `tencent-copilot`，粘贴 `ck_...` 开头的 key 即可。`/logout` 可移除存储的 key。
 
+## 更新扩展
+
+更新已安装的扩展包（拉取远程最新代码）：
+
+```sh
+pi update --extension git:github.com/asiazhang/pi-tencent-copilot
+```
+
+或一次性更新所有已安装的扩展包：
+
+```sh
+pi update --extensions
+```
+
+更新后重启 pi 会话生效。卸载用 `pi remove git:github.com/asiazhang/pi-tencent-copilot`。
+
 ## 使用
 
 安装并配置 key 后，在 pi 会话里用 `/model` 选择 `tencent-copilot/<model>`，或命令行指定：
@@ -63,11 +79,21 @@ pi --model tencent-copilot/glm-5.3-ioa
 pi -e ./path/to/pi-tencent-copilot
 ```
 
-类型检查：
+类型检查与 lint（Biome）：
 
 ```sh
-npm install && npx tsc
+npm install
+npm run typecheck
+npm run lint
 ```
+
+预览自定义 footer（`/tc-footer`）的渲染效果：
+
+```sh
+npm run footer-preview
+```
+
+命令、格式化规则与编辑纪律见 [AGENTS.md](AGENTS.md)。
 
 模型快照以元组数组维护（`SNAPSHOT`），新增模型只需加一行。
 
