@@ -4,13 +4,21 @@
  * Gateway: https://copilot.tencent.com/v2/chat/completions
  * OpenAI Chat Completions compatible + SSE, auth via `Authorization: Bearer <key>`.
  *
- * Setup: export TENCENT_INTRANET_API_KEY with your key, then select a
+ * Setup: either export TENCENT_INTRANET_API_KEY, or run `/login` and select
+ * "Tencent Copilot (CodeBuddy Gateway)" to store the key in auth.json (the
+ * stored credential wins over the environment variable). Then select a
  * `tencent-copilot/<model>` entry via /model.
  *
  * Model snapshot and gateway quirks verified against the live gateway
  * on 2026-08-18. Hot-reloadable via /reload after edits.
  */
 
+import {
+	createProvider,
+	envApiKeyAuth,
+	openAICompletionsApi,
+	type Model,
+} from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const BASE_URL = "https://copilot.tencent.com/v2";
@@ -34,7 +42,7 @@ const COMPAT = {
 	supportsReasoningEffort: true, // `reasoning_effort` accepted
 	supportsStrictMode: false, // no `strict` on tools
 	maxTokensField: "max_tokens", // not `max_completion_tokens`
-};
+} as const;
 
 const ALL_EFFORTS = {
 	off: null,
@@ -86,32 +94,45 @@ const SNAPSHOT: Array<[string, string, number, number, boolean, "all" | "nomax" 
 	["deepseek-v4-pro-ioa", "DeepSeek V4 Pro", 1000000, 50000, true, "all"],
 ];
 
-const models = SNAPSHOT.map(([id, name, contextWindow, maxTokens, supportsImages, efforts]) => ({
-	id,
-	name,
-	reasoning: efforts !== null,
-	input: (supportsImages ? ["text", "image"] : ["text"]) as ("text" | "image")[],
-	contextWindow,
-	maxTokens,
-	// Gateway is not billed per token; keep usage tracking cost-free.
-	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-	compat: COMPAT,
-	...(efforts === "all"
-		? { thinkingLevelMap: ALL_EFFORTS }
-		: efforts === "nomax"
-			? { thinkingLevelMap: NO_MAX_EFFORTS }
-			: {}),
-}));
+const models: Model<"openai-completions">[] = SNAPSHOT.map(
+	([id, name, contextWindow, maxTokens, supportsImages, efforts]) => ({
+		id,
+		name,
+		api: "openai-completions" as const,
+		provider: "tencent-copilot",
+		baseUrl: BASE_URL,
+		reasoning: efforts !== null,
+		input: (supportsImages ? ["text", "image"] : ["text"]) as ("text" | "image")[],
+		contextWindow,
+		maxTokens,
+		// Gateway is not billed per token; keep usage tracking cost-free.
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		compat: COMPAT,
+		...(efforts === "all"
+			? { thinkingLevelMap: ALL_EFFORTS }
+			: efforts === "nomax"
+				? { thinkingLevelMap: NO_MAX_EFFORTS }
+				: {}),
+	}),
+);
 
 export default function (pi: ExtensionAPI) {
-	pi.registerProvider("tencent-copilot", {
-		name: "Tencent Copilot (CodeBuddy Gateway)",
-		baseUrl: BASE_URL,
-		api: "openai-completions",
-		// Read the key from the environment so no credential is ever stored
-		// in this repository or in pi settings.
-		apiKey: "$TENCENT_INTRANET_API_KEY",
-		headers: GATEWAY_HEADERS,
-		models,
-	});
+	pi.registerProvider(
+		createProvider({
+			id: "tencent-copilot",
+			name: "Tencent Copilot (CodeBuddy Gateway)",
+			baseUrl: BASE_URL,
+			headers: GATEWAY_HEADERS,
+			// Standard api-key auth: a key stored via /login wins, otherwise the
+			// TENCENT_INTRANET_API_KEY environment variable is used. The key is
+			// only persisted to ~/.pi/agent/auth.json when /login is used.
+			auth: {
+				apiKey: envApiKeyAuth("Tencent Copilot (CodeBuddy) API key", [
+					"TENCENT_INTRANET_API_KEY",
+				]),
+			},
+			models,
+			api: openAICompletionsApi(),
+		}),
+	);
 }

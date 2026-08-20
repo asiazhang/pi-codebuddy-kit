@@ -18,14 +18,23 @@ pi -e git:github.com/asiazhang/pi-tencent-copilot
 
 ## 配置 API key
 
-1. 在 CodeBuddy 个人密钥页创建 API key。
-2. 导出到环境变量：
+二选一：
+
+方式一（推荐）：在 CodeBuddy 个人密钥页创建 API key，然后在 pi 会话里登录，key 会存入 `~/.pi/agent/auth.json`：
+
+```
+/login
+```
+
+选择 `tencent-copilot`，粘贴 `ck_...` 开头的 key 即可。`/logout` 可移除存储的 key。
+
+方式二：导出到环境变量（不落盘）：
 
 ```sh
 export TENCENT_INTRANET_API_KEY="ck_..."
 ```
 
-建议写进 `~/.zshrc` 或 `~/.bashrc`。key 只从环境变量读取，不会写入本仓库或 pi 设置文件。
+建议写进 `~/.zshrc` 或 `~/.bashrc`。两种方式可以共存：存储的 key 优先于环境变量。
 
 ## 使用
 
@@ -62,6 +71,12 @@ pi --model tencent-copilot/glm-5.3-ioa
 
 ```sh
 pi -e ./path/to/pi-tencent-copilot
+```
+
+类型检查：
+
+```sh
+npm install && npx tsc
 ```
 
 模型快照以元组数组维护（`SNAPSHOT`），新增模型只需加一行。
