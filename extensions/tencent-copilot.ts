@@ -53,37 +53,22 @@ const ALL_EFFORTS = {
 	xhigh: "xhigh",
 	max: "max",
 }
-// GPT-5.5 / 5.4 / 5.3-Codex reject "max" (verified 2026-08-18).
-const NO_MAX_EFFORTS = { ...ALL_EFFORTS, max: null }
 
 // [id, name, contextWindow, maxTokens, supportsImages, efforts]
-// efforts: "all" | "nomax" | null (null = no effort control, gateway rejects it)
-const SNAPSHOT: Array<[string, string, number, number, boolean, "all" | "nomax" | null]> = [
-	["claude-sonnet-5", "Claude Sonnet 5", 200000, 64000, true, "all"],
+// efforts: "all" | null (null = no effort control, gateway rejects it)
+const SNAPSHOT: Array<[string, string, number, number, boolean, "all" | null]> = [
 	["claude-sonnet-5-1m", "Claude Sonnet 5 (1M)", 1000000, 128000, true, "all"],
-	["claude-sonnet-4.6", "Claude Sonnet 4.6", 176000, 24000, true, "all"],
 	["claude-sonnet-4.6-1m", "Claude Sonnet 4.6 (1M)", 1000000, 24000, true, "all"],
 	["claude-opus-5", "Claude Opus 5", 1000000, 128000, true, "all"],
-	["claude-opus-4.8", "Claude Opus 4.8", 176000, 64000, true, "all"],
 	["claude-opus-4.8-1m", "Claude Opus 4.8 (1M)", 1000000, 128000, true, "all"],
-	["claude-opus-4.7", "Claude Opus 4.7", 176000, 64000, true, "all"],
 	["claude-opus-4.7-1m", "Claude Opus 4.7 (1M)", 1000000, 128000, true, "all"],
-	["claude-opus-4.6", "Claude Opus 4.6", 176000, 24000, true, "all"],
 	["claude-opus-4.6-1m", "Claude Opus 4.6 (1M)", 1000000, 64000, true, "all"],
-	["claude-haiku-4.5", "Claude Haiku 4.5", 176000, 24000, true, null],
 	["gemini-3.1-pro", "Gemini 3.1 Pro", 400000, 64000, true, "all"],
 	["gemini-3.5-flash", "Gemini 3.5 Flash", 1000000, 65536, true, "all"],
 	["gpt-5.6-sol", "GPT-5.6 Sol", 1000000, 128000, true, "all"],
 	["gpt-5.6-terra", "GPT-5.6 Terra", 1000000, 128000, true, "all"],
 	["gpt-5.6-luna", "GPT-5.6 Luna", 1000000, 128000, true, "all"],
-	["gpt-5.5", "GPT-5.5", 1000000, 128000, true, "nomax"],
-	["gpt-5.4", "GPT-5.4", 272000, 128000, true, "nomax"],
-	["gpt-5.3-codex", "GPT-5.3 Codex", 272000, 128000, true, "nomax"],
 	["glm-5.3-ioa", "GLM-5.3", 1000000, 48000, true, "all"],
-	["glm-5.2-ioa", "GLM-5.2", 1000000, 48000, true, "all"],
-	["glm-5.2-internal-ioa", "GLM-5.2 Dep", 200000, 48000, false, "all"],
-	["glm-5v-turbo-ioa", "GLM-5v Turbo", 200000, 38000, true, "all"],
-	["glm-5.0-ioa", "GLM-5.0", 200000, 48000, false, "all"],
 	["minimax-m3-ioa", "MiniMax M3", 512000, 48000, true, "all"],
 	["minimax-m2.7-ioa", "MiniMax M2.7", 200000, 48000, true, "all"],
 	["kimi-k3-ioa", "Kimi K3", 1000000, 32000, true, "all"],
@@ -108,11 +93,7 @@ const models: Model<"openai-completions">[] = SNAPSHOT.map(
 		// Gateway is not billed per token; keep usage tracking cost-free.
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		compat: COMPAT,
-		...(efforts === "all"
-			? { thinkingLevelMap: ALL_EFFORTS }
-			: efforts === "nomax"
-				? { thinkingLevelMap: NO_MAX_EFFORTS }
-				: {}),
+		...(efforts === "all" ? { thinkingLevelMap: ALL_EFFORTS } : {}),
 	}),
 )
 
