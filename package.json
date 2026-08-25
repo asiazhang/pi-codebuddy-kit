@@ -17,7 +17,7 @@
 	},
 	"pi": {
 		"extensions": [
-			"./extensions"
+			"./extensions/index.ts"
 		]
 	},
 	"scripts": {
