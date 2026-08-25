@@ -12,7 +12,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 const USER_INSTRUCTIONS = [
 	"",
 	"## Language",
-	"Reply in Simplified Chinese unless the user writes in another language. Keep code, identifiers, file paths, and technical terms in English.",
+	"Reply in Simplified Chinese unless the user writes in another language.",
 	"",
 	"## Bash search",
 	"Use `rg` (respects .gitignore); add `--hidden` only when you must include hidden files.",
