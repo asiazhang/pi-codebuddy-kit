@@ -7,19 +7,21 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 
-// User preference: bash searches must use `rg` — GNU `grep` ignores
-// .gitignore and can crawl node_modules, stalling the search.
-const GREP_INSTRUCTION = [
+// User preferences injected into the system prompt every turn.
+// Loads on every turn — kept minimal and positive (no negated tools).
+const USER_INSTRUCTIONS = [
+	"",
+	"## Language",
+	"Reply in Simplified Chinese unless the user writes in another language. Keep code, identifiers, file paths, and technical terms in English.",
 	"",
 	"## Bash search",
-	"Use `rg`: it respects .gitignore — `grep` ignores it and can stall crawling node_modules.",
-	"Add `--hidden` only when you must include hidden files.",
+	"Use `rg` (respects .gitignore); add `--hidden` only when you must include hidden files.",
 ].join("\n")
 
 export default function (pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event, _ctx) => {
 		return {
-			systemPrompt: event.systemPrompt + GREP_INSTRUCTION,
+			systemPrompt: event.systemPrompt + USER_INSTRUCTIONS,
 		}
 	})
 }
