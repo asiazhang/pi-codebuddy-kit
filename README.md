@@ -1,4 +1,4 @@
-# pi-tencent-copilot
+# pi-codebuddy-kit
 
 [pi](https://github.com/earendil-works/pi-mono) coding agent 的模型提供方扩展：接入腾讯 CodeBuddy 网关（`https://copilot.tencent.com/v2`）。
 
@@ -7,13 +7,13 @@
 ## 安装
 
 ```sh
-pi install git:github.com/asiazhang/pi-tencent-copilot
+pi install git:github.com/asiazhang/pi-codebuddy-kit
 ```
 
 或临时试用（不写入设置）：
 
 ```sh
-pi -e git:github.com/asiazhang/pi-tencent-copilot
+pi -e git:github.com/asiazhang/pi-codebuddy-kit
 ```
 
 ## 配置 API key
@@ -31,7 +31,7 @@ pi -e git:github.com/asiazhang/pi-tencent-copilot
 更新已安装的扩展包（拉取远程最新代码）：
 
 ```sh
-pi update --extension git:github.com/asiazhang/pi-tencent-copilot
+pi update --extension git:github.com/asiazhang/pi-codebuddy-kit
 ```
 
 或一次性更新所有已安装的扩展包：
@@ -40,7 +40,7 @@ pi update --extension git:github.com/asiazhang/pi-tencent-copilot
 pi update --extensions
 ```
 
-更新后重启 pi 会话生效。卸载用 `pi remove git:github.com/asiazhang/pi-tencent-copilot`。
+更新后重启 pi 会话生效。卸载用 `pi remove git:github.com/asiazhang/pi-codebuddy-kit`。
 
 ## 使用
 
@@ -76,7 +76,7 @@ pi --model tencent-copilot/glm-5.3-ioa
 克隆后直接编辑 `extensions/tencent-copilot.ts`，本地试运行：
 
 ```sh
-pi -e ./path/to/pi-tencent-copilot
+pi -e ./path/to/pi-codebuddy-kit
 ```
 
 类型检查与 lint（Biome）：
