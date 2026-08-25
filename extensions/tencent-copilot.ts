@@ -4,20 +4,21 @@
  * Gateway: https://copilot.tencent.com/v2/chat/completions
  * OpenAI Chat Completions compatible + SSE, auth via `Authorization: Bearer <key>`.
  *
- * Setup: either export TENCENT_INTRANET_API_KEY, or run `/login` and select
- * "Tencent Copilot (CodeBuddy Gateway)" to store the key in auth.json (the
- * stored credential wins over the environment variable). Then select a
- * `tencent-copilot/<model>` entry via /model.
+ * Setup: run `/login` and select "Tencent Copilot (CodeBuddy Gateway)" to store
+ * the key in auth.json (the only auth source — there is no env-var fallback).
+ * Then select a `tencent-copilot/<model>` entry via /model.
  *
  * Model snapshot and gateway quirks verified against the live gateway
  * on 2026-08-18. Hot-reloadable via /reload after edits.
  */
 
 import {
+	type ApiKeyAuth,
+	type AuthContext,
 	createProvider,
-	envApiKeyAuth,
 	type Model,
 	openAICompletionsApi,
+	type ProviderAuthInteraction,
 } from "@earendil-works/pi-ai/compat"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 
@@ -43,6 +44,26 @@ const COMPAT = {
 	supportsStrictMode: false, // no `strict` on tools
 	maxTokensField: "max_tokens", // not `max_completion_tokens`
 } as const
+
+// Api-key auth resolved only from the stored credential (auth.json, written
+// by /login). No env-var fallback: if no credential is stored the provider is
+// simply not configured until /login is run.
+const credentialApiKeyAuth: ApiKeyAuth = {
+	name: "Tencent Copilot (CodeBuddy) API key",
+	login: async (interaction: ProviderAuthInteraction) => {
+		interaction.signal.throwIfAborted()
+		const key = await interaction.prompt({
+			type: "secret",
+			message: "Enter Tencent Copilot (CodeBuddy) API key",
+		})
+		interaction.signal.throwIfAborted()
+		return { type: "api_key", key }
+	},
+	resolve: async ({ credential }: { ctx: AuthContext; credential?: { key?: string } }) => {
+		if (!credential?.key) return undefined
+		return { auth: { apiKey: credential.key }, source: "stored credential" }
+	},
+}
 
 const ALL_EFFORTS = {
 	off: null,
@@ -101,11 +122,10 @@ export default function (pi: ExtensionAPI) {
 			name: "Tencent Copilot (CodeBuddy Gateway)",
 			baseUrl: BASE_URL,
 			headers: GATEWAY_HEADERS,
-			// Standard api-key auth: a key stored via /login wins, otherwise the
-			// TENCENT_INTRANET_API_KEY environment variable is used. The key is
-			// only persisted to ~/.pi/agent/auth.json when /login is used.
+			// Auth is credential-only: the key stored via /login in
+			// ~/.pi/agent/auth.json. No env-var fallback.
 			auth: {
-				apiKey: envApiKeyAuth("Tencent Copilot (CodeBuddy) API key", ["TENCENT_INTRANET_API_KEY"]),
+				apiKey: credentialApiKeyAuth,
 			},
 			models,
 			api: openAICompletionsApi(),

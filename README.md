@@ -31,8 +31,6 @@ pi -e git:github.com/asiazhang/pi-codebuddy-kit
 
 选择 `tencent-copilot`，粘贴 `ck_...` 开头的 key 即可。`/logout` 可移除存储的 key。
 
-亦可设置环境变量 `TENCENT_INTRANET_API_KEY`（`/login` 存储的 key 优先）。
-
 ## 更新扩展
 
 更新已安装的扩展包（拉取远程最新代码）：
